@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: go (config, node, api, package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+      - run: go test -race ./...
+      # the daemon with the features compiled out, as the packages are built
+      - run: CGO_ENABLED=0 go build -trimpath -tags "$(tr ' ' ',' < scripts/tags)" -o /tmp/tailscale ./cmd/tailscale && /tmp/tailscale -version
+
+  ui:
+    name: ui (svelte-check, vitest, build, e2e)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: ui
+      - run: npm run check
+        working-directory: ui
+      - run: npm test
+        working-directory: ui
+      - run: npm run build
+        working-directory: ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: ui
+      - run: npx playwright test
+        working-directory: ui
+
+  headscale:
+    name: headscale (the node and a second one against Headscale in docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: TS_DOCKER=1 go test -count=1 -timeout 15m -v ./test/headscale/
+      # the same with the trimmed build's tags: what ships must register and forward too
+      - run: TS_DOCKER=1 go test -count=1 -timeout 15m -tags "$(tr ' ' ',' < scripts/tags)" ./test/headscale/
+
+  package:
+    name: packages (aarch64, x86_64, armv7l)
+    runs-on: ubuntu-latest
+    needs: [go, ui]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: VERSION=0.0.0-ci scripts/build.sh
+      - run: tar tzf dist/tailscale-x86_64-0.0.0-ci.tar.gz | sort
+      - run: tar tzf dist/tailscale-x86_64-0.0.0-ci.tar.gz | grep -q '^./tailscale/etc/lighttpd.conf$'
+      - run: tar tzf dist/tailscale-x86_64-0.0.0-ci.tar.gz | grep -q '^./openccu-lite.json$'
+      - run: ls -l dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/
+          retention-days: 7

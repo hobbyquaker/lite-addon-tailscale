@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "id": "tailscale",
+  "name": "Fernzugriff (Tailscale)",
+  "description": {
+    "de": "Verbindet dieses System mit Ihrem Tailscale-Netz (Tailnet): Telefon oder Laptop mit der Tailscale-App erreichen die Oberfläche, die APIs und die Addon-Seiten von unterwegs – ohne Portweiterleitung, auch hinter DS-Lite oder CGNAT, mit einem MagicDNS-Namen und einem vertrauenswürdigen Zertifikat. Tailscale läuft im Userspace im Addon selbst, ohne Kernel-Schnittstelle und ohne Zusatzrecht; erreichbar ist nur die Weboberfläche dieses Systems, nicht Ihr Heimnetz. Anmeldung bei Tailscale oder bei einem eigenen Headscale-Server. Es werden keine Protokolle an Tailscale gesendet.",
+    "en": "Connects this system to your Tailscale network (tailnet): a phone or laptop with the Tailscale app reaches the user interface, the APIs and the addon pages from anywhere – no port forward, behind DS-Lite or CGNAT too, with a MagicDNS name and a trusted certificate. Tailscale runs in userspace inside the addon, with no kernel interface and no privilege; only this system's web interface is reachable, not your home network. Login with Tailscale or with your own Headscale server. No logs are sent to Tailscale."
+  },
+  "version": "0.1.0",
+  "homepage": "https://github.com/hobbyquaker/lite-addon-tailscale",
+  "licence": "MIT",
+  "changelog": "https://github.com/hobbyquaker/lite-addon-tailscale/blob/main/CHANGELOG.md",
+  "release": {
+    "github": "hobbyquaker/lite-addon-tailscale",
+    "asset": "tailscale-{arch}-{version}.tar.gz"
+  },
+  "requires": {
+    "lite": "1.1.0-dev.6",
+    "architectures": ["aarch64", "x86_64", "armv7l"]
+  },
+  "ui": {
+    "icon": "tailscale/www/icon.svg",
+    "icon_dark": "tailscale/www/icon-dark.svg",
+    "settings_url": "/addons/tailscale/",
+    "session_header": true
+  },
+  "runtime": {
+    "daemon": true,
+    "needs": [],
+    "start": "early",
+    "capabilities": [],
+    "ports": [],
+    "api_scopes": ["system:read"],
+    "web_ingress": {"ranges": ["100.64.0.0/10", "fd7a:115c:a1e0::/48"]},
+    "note": {
+      "de": "Verbindet das System mit Ihrem Tailscale-Netz (Tailnet). Erst nach Verbinden auf der Seite des Addons, nicht beim Installieren: dann ständig mit dem Anmeldeserver (Tailscale Inc. oder Ihr eigener Headscale-Server) und dessen Relays. Der Anmeldeserver erfährt den Gerätenamen, die Tailscale-Version, die öffentliche und die lokalen IP-Adressen des Systems und wann es online ist; den Inhalt der Verbindungen nicht (Ende-zu-Ende verschlüsselt). Es werden keine Protokolle an Tailscale gesendet. Öffnet keinen Port in der Firewall und keinen im Router. Reicht die Web-Anfragen der Tailnet-Geräte über den Web-Eingang des Systems an den Webserver weiter, so dass das System die Tailnet-Adresse des Geräts sieht (100.64.0.0/10, fd7a:115c:a1e0::/48). Erreichbar ist nur die Weboberfläche dieses Systems, nicht Ihr Heimnetz. Das Recht system:read zeigt auf der Seite, ob die Backups verschlüsselt sind.",
+      "en": "Connects the system to your Tailscale network (tailnet). Only after Connect on the addon's page, not at install: then continuously to the login server (Tailscale Inc. or your own Headscale server) and its relays. The login server learns the device name, the Tailscale version, the system's public and local IP addresses and when it is online; not the content of connections (end-to-end encrypted). No logs are sent to Tailscale. Opens no port in the firewall and none in the router. Hands the tailnet devices' web requests to the web server through the system's web ingress, so the system sees the device's tailnet address (100.64.0.0/10, fd7a:115c:a1e0::/48). Only this system's web interface is reachable, not your home network. The scope system:read shows on the page whether the backups are encrypted."
+    }
+  }
+}
