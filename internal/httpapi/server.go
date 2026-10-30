@@ -230,19 +230,15 @@ func (s *server) connect(w http.ResponseWriter, r *http.Request) {
 		addonkit.WriteError(w, http.StatusUnprocessableEntity, "invalid", "that is no auth key")
 		return
 	}
-	// the node is started by hand here so the key can go with the start; the store's OnChange
-	// then finds it running
-	wasRunning := s.o.Node.Running()
-	if !wasRunning {
-		cur.Consented, cur.Enabled = true, true
-		if err := s.o.Store.Set(cur); err != nil {
-			writeErr(w, err)
-			return
-		}
-		if err := s.o.Node.Apply(cur); err != nil {
-			writeErr(w, err)
-			return
-		}
+	// the store's change starts the node (OnChange → Apply); a key then restarts it with the key
+	cur.Consented, cur.Enabled = true, true
+	if err := s.o.Store.Set(cur); err != nil {
+		writeErr(w, err)
+		return
+	}
+	if err := s.o.Node.Apply(cur); err != nil {
+		writeErr(w, err)
+		return
 	}
 	if key != "" {
 		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
