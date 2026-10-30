@@ -5,7 +5,7 @@
 # nothing is released: an issue names the failing run. Tailscale and Headscale eventually refuse old clients, so an
 # addon that stands still stops working; this keeps it moving without a hand.
 #
-# Releases through this workflow are authorised by the maintainer (2026-10-30). workflow_dispatch runs it by hand;
+# workflow_dispatch runs it by hand;
 # with dry_run nothing is pushed or released.
 name: follow-tailscale
 
@@ -82,6 +82,7 @@ jobs:
           cur=$(python3 -c "import json;print(json.load(open('addon/openccu-lite.json'))['version'])")
           new=$(python3 -c "v='$cur'.split('.');v[2]=str(int(v[2])+1);print('.'.join(v))")
           echo "version=$new" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
           echo "$cur -> $new"
       - name: the manifest's version and the changelog entry
         run: |
@@ -101,8 +102,7 @@ jobs:
         env:
           NEW: ${{ steps.ver.outputs.version }}
           TS: ${{ needs.check.outputs.latest }}
-          DATE: ${{ github.run_started_at }}
-      - run: sed -i "s/^## \[${{ steps.ver.outputs.version }}\] - .*/## [${{ steps.ver.outputs.version }}] - $(date -u +%F)/" CHANGELOG.md
+          DATE: ${{ steps.ver.outputs.date }}
       - uses: actions/upload-artifact@v4
         with:
           name: bumped-tree

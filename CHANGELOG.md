@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-10-30
 
 The first release, for openccu-lite 1.1.0-dev.6 and newer (the web ingress of the system).
 
