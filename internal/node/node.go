@@ -672,7 +672,7 @@ func (n *Node) Status(ctx context.Context) Status {
 	}
 	st.Health = s.Health
 	if s.Self != nil {
-		st.Self = &Self{Name: s.Self.HostName, DNSName: strings.TrimSuffix(s.Self.DNSName, "."), Addresses: addrs(s.Self.TailscaleIPs), User: userOf(s, s.Self), Tags: tagsOf(s.Self), Expired: s.Self.Expired, MagicDNS: s.MagicDNSSuffix, Relay: s.Self.Relay, Online: s.Self.Online}
+		st.Self = &Self{Name: s.Self.HostName, DNSName: strings.TrimSuffix(s.Self.DNSName, "."), Addresses: addrs(s.Self.TailscaleIPs), User: userOf(s, s.Self), Tags: tagsOf(s.Self), Expired: s.Self.Expired, Relay: s.Self.Relay, Online: s.Self.Online}
 		if s.Self.KeyExpiry != nil {
 			st.Self.KeyExpiry = s.Self.KeyExpiry.UnixMilli()
 			if time.Now().After(*s.Self.KeyExpiry) {
@@ -681,6 +681,7 @@ func (n *Node) Status(ctx context.Context) Status {
 		}
 		if s.CurrentTailnet != nil {
 			st.Self.Tailnet = s.CurrentTailnet.Name
+			st.Self.MagicDNS = s.CurrentTailnet.MagicDNSSuffix
 		}
 		if len(s.CertDomains) > 0 {
 			st.Self.CertDomain = s.CertDomains[0]

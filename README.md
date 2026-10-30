@@ -35,7 +35,10 @@ Tailnet-Adresse des Geräts sieht und nicht den Loopback. Die Anmeldung läuft b
   bevor sie den Webserver erreichen. Der Tab **Geräte** zeigt die Geräte des Tailnets mit Zustand, Weg (direkt oder über
   ein Relay), Datenverkehr und ob sie dürfen.
 - **Headscale:** ein Anmeldeserver-Feld registriert den Knoten bei einem selbst betriebenen Headscale statt bei Tailscale
-  Inc. Mit Headscales eigenem Relay wird dann nichts von Tailscale kontaktiert.
+  Inc. Mit Headscales eigenem Relay wird dann nichts von Tailscale kontaktiert. Der Headscale braucht ein gültiges
+  TLS-Zertifikat (eine `https://`-URL): die Tailscale-Clients erreichen sein eingebettetes Relay nur über HTTPS – mit
+  einem Headscale auf `http://` registriert sich der Knoten, aber kein Gerät kommt durch (die Seite meldet dann, dass
+  der Relay-Server nicht erreichbar ist).
 - **Durch das Tailnet erreichbar ist nur dieses System** – Oberfläche, APIs, Addon-Seiten. Kein Exit-Node, keine
   Subnetz-Routen, kein Funnel, kein Tailscale-SSH; das Heimnetz hinter dem System bleibt unerreichbar.
 - **Privatsphäre:** Protokoll-Upload an Tailscale, UPnP/NAT-PMP, Debug-Zugriff der Kontrollebene, Portlisten- und

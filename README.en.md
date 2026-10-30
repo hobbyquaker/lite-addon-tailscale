@@ -34,7 +34,9 @@ Tailscale - or with your own [Headscale](https://headscale.net) server, then wit
   server. The **Devices** tab lists the tailnet's devices with state, path (direct or via a relay), traffic and whether
   each may connect.
 - **Headscale:** a login server field registers the node with a self-hosted Headscale instead of Tailscale Inc. With
-  Headscale's own relay nothing of Tailscale is contacted.
+  Headscale's own relay nothing of Tailscale is contacted. The Headscale needs a valid TLS certificate (an `https://`
+  URL): the Tailscale clients reach its embedded relay over HTTPS only - with a Headscale on `http://` the node
+  registers but no device gets through (the page then says the relay server is unreachable).
 - **Only this system is reachable through the tailnet** - the user interface, the APIs, the addon pages. No exit node,
   no subnet routes, no Funnel, no Tailscale SSH; the home network behind the system stays out of reach.
 - **Privacy:** log upload to Tailscale, UPnP/NAT-PMP, control-plane debug access, port-list and metrics reporting,
