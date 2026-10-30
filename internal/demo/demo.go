@@ -110,15 +110,12 @@ func (d *Node) Forget() error {
 	return nil
 }
 
-// Status is the stand-in's state: a login after the first connect (a key logs it in), then a
-// node on the tailnet "tail1234" with three peers.
+// Status is the stand-in's state: a login after the first connect (a key logs it in; the URL
+// never logs in by itself, so the page's tests are deterministic), then a node on the tailnet
+// "tail1234" with three peers.
 func (d *Node) Status(ctx context.Context) node.Status {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	// the first start logs in by itself after a few seconds, like a node that was approved
-	if d.running && !d.identity && d.loginURL != "" && time.Since(d.started) > 12*time.Second && d.Config != nil && d.Config().ControlURL == "" {
-		d.identity, d.loginURL, d.since = true, "", time.Now()
-	}
 	st := node.Status{Running: d.running, State: "NoState", Peers: []node.Peer{}, Version: "1.104.4", HasIdentity: d.identity, Refused: d.refused}
 	if d.Config != nil {
 		st.ControlURL = d.Config().ControlURL

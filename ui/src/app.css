@@ -845,7 +845,7 @@ button.ts-fixed {
 
 /* the state pill of the connection is wider than a device's */
 .ts-pill.ts-pill-wide {
-    width: 12em;
+    width: 13.5em;
 }
 
 .ts-kv .ts-pill {

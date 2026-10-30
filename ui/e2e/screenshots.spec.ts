@@ -24,16 +24,24 @@ for (const scheme of ['light', 'dark'] as const) {
                 await page.getByTestId('conn-logout').click();
                 await page.getByTestId('confirm-logout-yes').click();
             }
-            if (!(await page.getByTestId('login-open').count())) {
+            if (await page.getByTestId('conn-connect').count()) {
                 await page.getByTestId('conn-connect').click();
             }
+            if (!(await page.getByTestId('login-open').count())) {
+                await page.getByTestId('login-request').click();
+            }
         }
+        await expect(page.getByTestId('login-open')).toBeVisible();
+        // a reload clears the notices
+        await page.reload();
         await expect(page.getByTestId('login-open')).toBeVisible();
         await page.waitForTimeout(400);
         await page.screenshot({path: out('02-anmeldung')});
         await page.getByText('Stattdessen einen Auth-Key verwenden').click();
         await page.getByTestId('login-key').fill('tskey-auth-k0123456789');
         await page.getByTestId('login-with-key').click();
+        await expect(page.getByTestId('conn-state')).toHaveText('verbunden');
+        await page.reload();
         await expect(page.getByTestId('conn-state')).toHaveText('verbunden');
         await page.waitForTimeout(600);
         await page.screenshot({path: out('03-verbindung')});

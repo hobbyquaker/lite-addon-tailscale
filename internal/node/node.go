@@ -536,16 +536,37 @@ func (n *Node) Login(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := n.restart(ctx, lc, ""); err != nil {
+		return err
+	}
 	return lc.StartLoginInteractive(ctx)
 }
 
 // LoginWithKey registers the node with an auth key (a node that is logged out, or never was).
+// As "tailscale up --auth-key" does: the key goes to the control client with Start, and the
+// login is then started like an interactive one - the key makes it complete without a browser.
+// Start alone creates the client but logs nothing in while there is no node key.
 func (n *Node) LoginWithKey(ctx context.Context, key string) error {
 	lc, err := n.client()
 	if err != nil {
 		return err
 	}
-	return lc.Start(ctx, ipn.Options{AuthKey: key})
+	if err := n.restart(ctx, lc, key); err != nil {
+		return err
+	}
+	return lc.StartLoginInteractive(ctx)
+}
+
+// restart gives the backend the login server and the hostname again (with a key when there is
+// one): a logout empties the profile, and a login after it would otherwise go to Tailscale's
+// default login server, not the configured one - the same as "tailscale up --login-server".
+func (n *Node) restart(ctx context.Context, lc *local.Client, key string) error {
+	c := n.o.Config()
+	prefs := ipn.NewPrefs()
+	prefs.ControlURL = c.ControlURL
+	prefs.Hostname = c.Hostname
+	prefs.WantRunning = true
+	return lc.Start(ctx, ipn.Options{UpdatePrefs: prefs, AuthKey: key})
 }
 
 // Logout expires the node's key at the login server and forgets the login; the node stays up

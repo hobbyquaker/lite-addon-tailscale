@@ -97,6 +97,7 @@ test('disconnects, reconnects, logs out and forgets', async ({page}) => {
     await expect(page.getByTestId('conn-state')).toHaveText('waiting for login');
     await page.getByTestId('login-request').click();
     await expect(page.getByTestId('login-open')).toBeVisible();
+    await page.getByText('Use an auth key instead').click();
     await page.getByTestId('login-key').fill('tskey-auth-k0123456789');
     await page.getByTestId('login-with-key').click();
     await expect(page.getByTestId('conn-state')).toHaveText('connected');

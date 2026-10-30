@@ -49,7 +49,9 @@ derp:
   auto_update_enabled: false
   update_frequency: 24h
 disable_check_updates: true
-ephemeral_node_inactivity_timeout: 30m
+node:
+  ephemeral:
+    inactivity_timeout: 30m
 database:
   type: sqlite
   sqlite:
@@ -61,6 +63,7 @@ policy:
 dns:
   magic_dns: true
   base_domain: tail.test
+  override_local_dns: false
   nameservers:
     global: []
 unix_socket: /var/run/headscale/headscale.sock
@@ -195,13 +198,23 @@ func TestHeadscale(t *testing.T) {
 	for i := 0; i < 60 && n2.Status(ctx).State != "Running"; i++ {
 		time.Sleep(time.Second)
 	}
-	short := &http.Client{Transport: &http.Transport{DialContext: phone.Dial}, Timeout: 8 * time.Second}
-	if res, err := short.Get("http://ccu2.tail.test/"); err == nil {
-		t.Fatalf("a peer outside the rule got through: %d", res.StatusCode)
+	// the fresh node takes a moment to be reachable; every attempt must end without an answer,
+	// and one of them must be the addon's refusal (the connection closed after WhoIs)
+	short := &http.Client{Transport: &http.Transport{DialContext: phone.Dial, DisableKeepAlives: true}, Timeout: 5 * time.Second}
+	var s2 node.Status
+	for i := 0; i < 12; i++ {
+		if res, err := short.Get("http://ccu2.tail.test/"); err == nil {
+			t.Fatalf("a peer outside the rule got through: %d", res.StatusCode)
+		}
+		if s2 = n2.Status(ctx); s2.Refused > 0 {
+			break
+		}
+		time.Sleep(time.Second)
 	}
-	if s2 := n2.Status(ctx); s2.Refused == 0 {
+	if s2.Refused == 0 {
 		t.Fatalf("the refusal is not counted: %+v", s2)
 	}
+	t.Logf("the stranger was refused %d times", s2.Refused)
 	// the node's identity survives a stop and a start without a key
 	n.Stop()
 	n3 := node.New(node.Options{StateDir: filepath.Join(dir, "state"), Socket: stub.Path, Log: t.Logf, Config: fixed(c)})
