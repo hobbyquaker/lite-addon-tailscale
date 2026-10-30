@@ -1,0 +1,215 @@
+# Follows Tailscale's releases: once a day it looks at the newest stable tailscale/tailscale release, and when go.mod
+# is behind it bumps the module (and the Go toolchain when the new tsnet needs it), runs the full gate - the Go tests,
+# the page, the Headscale integration test with the shipped build tags, the packages - and, on green, bumps the
+# addon's patch version, commits, tags and publishes the release with the packages and their .sha256 sidecars. On red
+# nothing is released: an issue names the failing run. Tailscale and Headscale eventually refuse old clients, so an
+# addon that stands still stops working; this keeps it moving without a hand.
+#
+# Releases through this workflow are authorised by the maintainer (2026-10-30). workflow_dispatch runs it by hand;
+# with dry_run nothing is pushed or released.
+name: follow-tailscale
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'check and gate, but neither push nor release'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: follow-tailscale
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: is there a newer Tailscale?
+    runs-on: ubuntu-latest
+    outputs:
+      current: ${{ steps.v.outputs.current }}
+      latest: ${{ steps.v.outputs.latest }}
+      bump: ${{ steps.v.outputs.bump }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          current=$(awk '$1 == "tailscale.com" {print $2}' go.mod)
+          # the newest stable release: tags vX.Y.Z with an even minor (odd minors are unstable), no prerelease
+          latest=$(gh api repos/tailscale/tailscale/releases --paginate --jq '.[] | select(.prerelease == false and .draft == false) | .tag_name' \
+            | grep -E '^v[0-9]+\.[0-9]*[02468]\.[0-9]+$' | sort -V | tail -1)
+          echo "current=$current latest=$latest"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ -n "$latest" ] && [ "$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -1)" = "$latest" ] && [ "$current" != "$latest" ]; then
+            echo "bump=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "bump=no" >> "$GITHUB_OUTPUT"
+          fi
+
+  bump:
+    name: bump go.mod to ${{ needs.check.outputs.latest }}
+    needs: check
+    if: needs.check.outputs.bump == 'yes'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: go get tailscale.com@${{ needs.check.outputs.latest }}
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          set -eu
+          go get tailscale.com@${{ needs.check.outputs.latest }}
+          go mod tidy
+          # the new tsnet may need a newer Go: go get raised the go directive if so; GOTOOLCHAIN=auto fetched it
+          grep -E '^go |tailscale.com ' go.mod
+      - id: ver
+        run: |
+          set -eu
+          cur=$(python3 -c "import json;print(json.load(open('addon/openccu-lite.json'))['version'])")
+          new=$(python3 -c "v='$cur'.split('.');v[2]=str(int(v[2])+1);print('.'.join(v))")
+          echo "version=$new" >> "$GITHUB_OUTPUT"
+          echo "$cur -> $new"
+      - name: the manifest's version and the changelog entry
+        run: |
+          set -eu
+          python3 - <<'EOF'
+          import json, os, re
+          new = os.environ['NEW']; ts = os.environ['TS'].lstrip('v')
+          p = 'addon/openccu-lite.json'
+          m = json.load(open(p))
+          m['version'] = new
+          json.dump(m, open(p, 'w'), indent=2, ensure_ascii=False); open(p, 'a').write('\n')
+          cl = open('CHANGELOG.md').read()
+          entry = f"## [{new}] - {os.environ['DATE']}\n\n- Tailscale client {ts} (the embedded `tailscale.com` module; released by the release-following workflow).\n\n"
+          cl = cl.replace('# Changelog\n\n', '# Changelog\n\n' + entry, 1)
+          open('CHANGELOG.md', 'w').write(cl)
+          EOF
+        env:
+          NEW: ${{ steps.ver.outputs.version }}
+          TS: ${{ needs.check.outputs.latest }}
+          DATE: ${{ github.run_started_at }}
+      - run: sed -i "s/^## \[${{ steps.ver.outputs.version }}\] - .*/## [${{ steps.ver.outputs.version }}] - $(date -u +%F)/" CHANGELOG.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bumped-tree
+          path: |
+            go.mod
+            go.sum
+            addon/openccu-lite.json
+            CHANGELOG.md
+          retention-days: 3
+
+  gate:
+    name: the full gate on the bumped tree
+    needs: [check, bump]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: bumped-tree
+          path: .
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+      - run: go test -race ./...
+      - run: CGO_ENABLED=0 go build -trimpath -tags "$(tr ' ' ',' < scripts/tags)" -o /tmp/tailscale ./cmd/tailscale && /tmp/tailscale -version
+      - run: npm ci --no-audit --no-fund
+        working-directory: ui
+      - run: npm run check
+        working-directory: ui
+      - run: npm test
+        working-directory: ui
+      - run: npm run build
+        working-directory: ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: ui
+      - run: npx playwright test
+        working-directory: ui
+      - run: TS_DOCKER=1 go test -count=1 -timeout 15m -v ./test/headscale/
+      - run: TS_DOCKER=1 go test -count=1 -timeout 15m -tags "$(tr ' ' ',' < scripts/tags)" ./test/headscale/
+      - run: VERSION=${{ needs.bump.outputs.version }} scripts/build.sh
+      - run: ls -l dist/ && tar tzf dist/tailscale-x86_64-${{ needs.bump.outputs.version }}.tar.gz | grep -q '^./openccu-lite.json$'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/
+          retention-days: 7
+
+  release:
+    name: commit, tag and release v${{ needs.bump.outputs.version }}
+    needs: [check, bump, gate]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: bumped-tree
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - name: commit and tag
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add go.mod go.sum addon/openccu-lite.json CHANGELOG.md
+          git commit -m "Tailscale ${{ needs.check.outputs.latest }}: lite-addon-tailscale ${{ needs.bump.outputs.version }}
+
+          The release-following workflow: Tailscale released ${{ needs.check.outputs.latest }}, the embedded module
+          follows it, the full gate (Go, the page, the Headscale integration test with the shipped build tags, the
+          packages) was green on this tree."
+          git tag -a "v${{ needs.bump.outputs.version }}" -m "lite-addon-tailscale ${{ needs.bump.outputs.version }} (Tailscale ${{ needs.check.outputs.latest }})"
+          git push origin HEAD:main "v${{ needs.bump.outputs.version }}"
+      - name: the release with the packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          v=${{ needs.bump.outputs.version }}
+          ts=${{ needs.check.outputs.latest }}
+          printf 'lite-addon-tailscale %s for openccu-lite 1.1.0-dev.6 and newer.\n\n- Tailscale client %s (the embedded module follows Tailscale'"'"'s release; released by the repository'"'"'s release-following workflow after its full gate, the Headscale integration test included).\n\nThe packages per architecture (`uname -m`) with their `.sha256` sidecars; the system'"'"'s Addons page installs them.\n' "$v" "${ts#v}" > /tmp/notes.md
+          gh release create "v$v" --title "v$v" --notes-file /tmp/notes.md dist/*.tar.gz dist/*.sha256
+
+  red:
+    name: open an issue when the gate failed
+    needs: [check, bump, gate]
+    if: ${{ failure() && needs.check.outputs.bump == 'yes' }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          title="follow-tailscale: ${{ needs.check.outputs.latest }} did not pass the gate"
+          if gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json title --jq '.[].title' | grep -qF "$title"; then
+            echo "an issue is open already"; exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The release-following workflow tried to move the embedded Tailscale module from ${{ needs.check.outputs.current }} to ${{ needs.check.outputs.latest }}, and the gate went red: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Nothing was released. The bump needs a hand: a Go toolchain the runner lacks, an API change in tsnet, or a test that the new version breaks."
