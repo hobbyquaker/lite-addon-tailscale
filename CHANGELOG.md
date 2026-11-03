@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.1] - 2026-11-03
+
+- Tailscale client 1.104.5 (the embedded `tailscale.com` module; released by the release-following workflow).
+
 ## [0.1.0] - 2026-10-30
 
 The first release, for openccu-lite 1.1.0-dev.6 and newer (the web ingress of the system).
