@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.2] - 2026-11-11
+
+- Tailscale client 1.104.6 (the embedded `tailscale.com` module; released by the release-following workflow).
+
 ## [0.1.1] - 2026-11-03
 
 - Tailscale client 1.104.5 (the embedded `tailscale.com` module; released by the release-following workflow).
