@@ -5,7 +5,7 @@
 > **Benötigt openccu-lite 1.1.0-dev.6 oder neuer** (den Web-Eingang des Systems). Mit openccu-lite 1.0.0 lässt sich das
 > Addon nicht installieren; das Manifest nennt die Mindestversion (`requires.lite`).
 
-**Tailscale-Fernzugriff** auf ein [openccu-lite](https://github.com/hobbyquaker/openccu-lite)-System: Telefon oder
+**Tailscale-Fernzugriff** auf ein [openccu-lite](https://github.com/openccu-lite/openccu-lite)-System: Telefon oder
 Laptop mit der Tailscale-App erreichen von unterwegs die Oberfläche, die APIs und die Addon-Seiten – und sonst nichts.
 Keine Portweiterleitung, kein offener Port, funktioniert auch hinter DS-Lite oder CGNAT; ein fester MagicDNS-Name
 (`ccu.<tailnet>.ts.net`) und ein vom Browser anerkanntes Zertifikat. Tailscale läuft im Userspace **im Addon selbst**
@@ -50,7 +50,7 @@ Tailnet-Adresse des Geräts sieht und nicht den Loopback. Die Anmeldung läuft b
 ## Installation
 
 1. Das Paket `tailscale-<arch>-<version>.tar.gz` von der
-   [Releases-Seite](https://github.com/hobbyquaker/lite-addon-tailscale/releases) über die Addons-Seite des Systems
+   [Releases-Seite](https://github.com/openccu-lite/lite-addon-tailscale/releases) über die Addons-Seite des Systems
    installieren. Kein Port-Schalter, keine Portweiterleitung: Der Knoten baut nur ausgehende Verbindungen auf.
 2. Die Addon-Seite öffnen (*Fernzugriff (Tailscale)* im Addon-Menü), die Einwilligungskarte lesen, den Anmeldeserver
    wählen (Tailscale oder die URL des eigenen Headscale) und **Verbinden**.

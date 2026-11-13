@@ -5,7 +5,7 @@
 > **Requires openccu-lite 1.1.0-dev.6 or later** (the system's web ingress). On openccu-lite 1.0.0 the addon cannot be
 > installed; the manifest names the minimum (`requires.lite`).
 
-**Tailscale remote access** to an [openccu-lite](https://github.com/hobbyquaker/openccu-lite) system: a phone or laptop
+**Tailscale remote access** to an [openccu-lite](https://github.com/openccu-lite/openccu-lite) system: a phone or laptop
 with the Tailscale app reaches the user interface, the APIs and the addon pages from anywhere - and nothing else. No port
 forward, no open port, behind DS-Lite or CGNAT too; a stable MagicDNS name (`ccu.<tailnet>.ts.net`) and a
 browser-trusted certificate. Tailscale runs in userspace **inside the addon** (Tailscale's own library `tsnet`): no
@@ -48,7 +48,7 @@ Tailscale - or with your own [Headscale](https://headscale.net) server, then wit
 ## Installation
 
 1. Install the package `tailscale-<arch>-<version>.tar.gz` from the
-   [releases page](https://github.com/hobbyquaker/lite-addon-tailscale/releases) through the system's Addons page. No
+   [releases page](https://github.com/openccu-lite/lite-addon-tailscale/releases) through the system's Addons page. No
    port switch, no port forward: the node makes outgoing connections only.
 2. Open the addon's page (*Remote access (Tailscale)* in the addon menu), read the consent card, choose the login server
    (Tailscale or your Headscale's URL) and **Connect**.

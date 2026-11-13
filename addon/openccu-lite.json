@@ -7,9 +7,9 @@
     "en": "Connects this system to your Tailscale network (tailnet): a phone or laptop with the Tailscale app reaches the user interface, the APIs and the addon pages from anywhere – no port forward, behind DS-Lite or CGNAT too, with a MagicDNS name and a trusted certificate. Tailscale runs in userspace inside the addon, with no kernel interface and no privilege; only this system's web interface is reachable, not your home network. Login with Tailscale or with your own Headscale server. No logs are sent to Tailscale."
   },
   "version": "0.1.3",
-  "homepage": "https://github.com/hobbyquaker/lite-addon-tailscale",
+  "homepage": "https://github.com/openccu-lite/lite-addon-tailscale",
   "licence": "MIT",
-  "changelog": "https://github.com/hobbyquaker/lite-addon-tailscale/blob/main/CHANGELOG.md",
+  "changelog": "https://github.com/openccu-lite/lite-addon-tailscale/blob/main/CHANGELOG.md",
   "release": {
     "github": "hobbyquaker/lite-addon-tailscale",
     "asset": "tailscale-{arch}-{version}.tar.gz"
