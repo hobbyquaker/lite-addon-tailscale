@@ -1,11 +1,11 @@
 module github.com/hobbyquaker/lite-addon-tailscale
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/hobbyquaker/ccu-addon-kit/go v0.0.0-20261030124810-f09ba9aa6d44
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	tailscale.com v1.104.6
+	tailscale.com v1.104.7
 )
 
 require (
